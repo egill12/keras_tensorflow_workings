@@ -16,7 +16,7 @@ from sklearn.metrics import confusion_matrix
 features_to_use = ["spot_v_HF", "spot_v_MF", "spot_v_LF", "HF_ema_diff",
                    "MF_ema_diff", "LF_ema_diff", "LDN", "NY", "Asia", "target"]
 
-def create_train_test_file(data_file, data_size, test_split, model_features):
+def create_train_test_file(data_file, data_size, test_split):
     '''
     This module will create the traingin and testing files to be used in the ML RNN model.
     :return: training and testing data fils.
@@ -24,19 +24,17 @@ def create_train_test_file(data_file, data_size, test_split, model_features):
     # How large should the training data be?
     if data_size > data_file.shape[0]:
         # Overwrite the data_length to be 90% f file, with remaining 10% as train
-        data_size = data_file.shape[0]*0.9
+        data_size = int(data_file.shape[0]*0.9)
         # adding a buffer of 5 forward steps before we start trading on test data
         test_size = data_file.shape[0] - (data_size + 5)
-    test_size = data_size*test_split
+    test_size = int(data_size*test_split)
     # training size is the first x data points
-    train_original = data_file.iloc[:data_size, :]  # eurusd_train.iloc[-DATA_SIZE:,:]
-    test_original = data_file.iloc[data_size + 5: (data_size + test_size), :]
-    train_sample = train_original[model_features]
-    test_sample = test_original[model_features]
-    return train_sample , test_sample
+    train_original = data_file.iloc[:int(data_size), :].reset_index(drop= False)  # eurusd_train.iloc[-DATA_SIZE:,:]
+    test_original = data_file.iloc[int(data_size) + 5: (int(data_size) + int(test_size)), :].reset_index(drop= False)
+    return train_original , test_original
 
 
-def create_dataset(dataset, populate_target, look_back=look_back):
+def create_dataset(dataset, populate_target, look_back, test):
     '''
     This creates the data for  passing to the LSTM module
     :param dataset:
@@ -52,7 +50,7 @@ def create_dataset(dataset, populate_target, look_back=look_back):
         # this code assumes that the target vector is the very last col.
         dataY.append(dataset[i + look_back - 1, -1])
         if populate_target:
-            target_dates.append(test_original['Date'].loc[i + look_back - 1])
+            target_dates.append(test['Date'].loc[i + look_back - 1])
     return np.array(dataX), np.array(dataY), target_dates
 
 def signal(output, thold):
@@ -81,6 +79,8 @@ def get_scaled_returns():
     '''
     pass
 
+def main():
+    pass
 
 if __name__ == "__main__":
     main()
