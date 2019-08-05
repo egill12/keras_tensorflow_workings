@@ -1,9 +1,10 @@
 '''
 author: Ed Gill
-This file contains the neccessary modules for creating the training and testing files for the machine.
+
+This file contains the neccessary modules for creating the training and testing files for the machine learnign algorithm.
 '''
 
-# This file is a simple implementation of the 
+# import neccessary modules to perpare the data for entry to ML model.
 from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import Dense
