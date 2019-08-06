@@ -1,8 +1,6 @@
 # keras_tensorflow_workings
-Code workings in Keras and Tensor flow to use various Machine Leanring models for currency trading.
+Code workings in Keras and Tensor flow to use various Machine Learning models for currency trading.
 The code is kept in its own separate envvironment as this is the 64 bit version. The majority of the code here will be used to implement ANNs and more specifically Recurrent Neural Networks (LSTM) There is also a section which is dedicated to running the code on a cloud server in order to speed up the training process.
-
-Code to create ML models and run analysis using ANNs etc
 The file collects the normalised versions of each curreny data, using meaures of price based 
 data only.
 This NN file uses a LSTM (the lookback again is of interest, do we need to vary these?)
