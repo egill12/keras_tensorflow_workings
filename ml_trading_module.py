@@ -22,6 +22,8 @@ def create_train_test_file(data_file, data_size, test_split):
     This module will create the traingin and testing files to be used in the ML RNN model.
     :return: training and testing data fils.
     '''
+    # use a long term rolling standardisation window
+
     # How large should the training data be?
     if data_size > data_file.shape[0]:
         # Overwrite the data_length to be 90% f file, with remaining 10% as train
@@ -33,6 +35,26 @@ def create_train_test_file(data_file, data_size, test_split):
     train_original = data_file.iloc[:int(data_size), :].reset_index(drop= False)  # eurusd_train.iloc[-DATA_SIZE:,:]
     test_original = data_file.iloc[int(data_size) + 5: (int(data_size) + int(test_size)), :].reset_index(drop= False)
     return train_original , test_original
+
+def standardise_data(dataset, cols, window):
+    '''
+    This function computes the standardised returns on a rolling basis backwards.
+    This si most realistic in term sof a trading strategy and also means the test data is standardised on the correct basis using the 
+    latest data available at each timestep.
+    :param dataframe:
+    :param cols:
+    :return:
+    '''
+    rolling_mean  = dataset[cols].rolling(window).mean()
+    rolling_std = dataset[cols].rolling(window).std()
+
+    train_standardised = dataset.subtract(rolling_mean)
+    train_standardised = train_standardised.divide(rolling_std)
+    # we will only return the data which is outide the initial window standardisation period
+    return train_standardised.loc[window:,:]
+
+
+
 
 
 def create_dataset(dataset, populate_target, look_back, test):
