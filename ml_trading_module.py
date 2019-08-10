@@ -17,7 +17,7 @@ from sklearn.metrics import confusion_matrix
 features_to_use = ["spot_v_HF", "spot_v_MF", "spot_v_LF", "HF_ema_diff",
                    "MF_ema_diff", "LF_ema_diff", "LDN", "NY", "Asia", "target"]
 
-def create_train_test_file(data_file, data_size, test_split):
+def create_train_test_file(data_file, data_size, test_split, test_buffer):
     '''
     This module will create the traingin and testing files to be used in the ML RNN model.
     :return: training and testing data fils.
@@ -29,14 +29,14 @@ def create_train_test_file(data_file, data_size, test_split):
         # Overwrite the data_length to be 90% f file, with remaining 10% as train
         data_size = int(data_file.shape[0]*0.9)
         # adding a buffer of 5 forward steps before we start trading on test data
-        test_size = data_file.shape[0] - (data_size + 5)
+        test_size = data_file.shape[0] - (data_size + test_buffer)
     test_size = int(data_size*test_split)
     # training size is the first x data points
     train_original = data_file.iloc[:int(data_size), :].reset_index(drop= False)  # eurusd_train.iloc[-DATA_SIZE:,:]
     test_original = data_file.iloc[int(data_size) + 5: (int(data_size) + int(test_size)), :].reset_index(drop= False)
     return train_original , test_original
 
-def standardise_data(dataset, cols, window):
+def standardise_data(dataset, full_cols, standardised_cols,window):
     '''
     This function computes the standardised returns on a rolling basis backwards.
     This si most realistic in term sof a trading strategy and also means the test data is standardised on the correct basis using the 
@@ -45,15 +45,32 @@ def standardise_data(dataset, cols, window):
     :param cols:
     :return:
     '''
-    rolling_mean  = dataset[cols].rolling(window).mean()
-    rolling_std = dataset[cols].rolling(window).std()
+    rolling_mean  = dataset[standardised_cols].rolling(window).mean()
+    rolling_std = dataset[standardised_cols].rolling(window).std()
 
     train_standardised = dataset.subtract(rolling_mean)
     train_standardised = train_standardised.divide(rolling_std)
     # we will only return the data which is outide the initial window standardisation period
+    # add non standardised features
+    for feature in full_cols:
+        if feature not in standardised_cols:
+            train_standardised[feature] = dataset[feature]
+    # This function now returns the neccessary file with both standard and non standardised columns.
     return train_standardised.loc[window:,:]
 
-
+def calculate_target(data_df,trade_horizon,use_risk_adjusted):
+    '''
+    Take the raw dataseries of log returns.
+    :param data_df:
+    :param horizon:
+    :param use_risk_adjusted:
+    :return:  return the risk adjusted return or the raw percent ahead return
+    '''
+    # Using a shift = 2 so that the forward return starts from exactly the next future time step.
+    if use_risk_adjusted:
+        return data_df['logret'].iloc[::-1].shift(2).rolling(trade_horizon).sum().values[::-1]/data_df['logret'].iloc[::-1].shift(2).rolling(trade_horizon).std().values[::-1]
+    else:
+        return data_df['logret'].iloc[::-1].shift(2).rolling(trade_horizon).sum().values[::-1]
 
 
 
