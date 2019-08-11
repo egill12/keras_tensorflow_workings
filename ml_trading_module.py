@@ -45,11 +45,8 @@ def standardise_data(dataset, full_cols, standardised_cols,window):
     :param cols:
     :return:
     '''
-    rolling_mean  = dataset[standardised_cols].rolling(window).mean()
-    rolling_std = dataset[standardised_cols].rolling(window).std()
-
-    train_standardised = dataset.subtract(rolling_mean)
-    train_standardised = train_standardised.divide(rolling_std)
+    train_standardised = dataset[standardised_cols].subtract(dataset[standardised_cols].rolling(window).mean())
+    train_standardised = train_standardised.divide(dataset[standardised_cols].rolling(window).std())
     # we will only return the data which is outide the initial window standardisation period
     # add non standardised features
     for feature in full_cols:
