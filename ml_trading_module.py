@@ -116,6 +116,63 @@ def get_scaled_returns():
     '''
     pass
 
+def get_pca_features(train,test, features_to_standardise, use_pca):
+    '''
+    This file outputs the PCA vectors of the model to the number of features needed.
+    :param data_file:
+    :param model_features:
+    :param output_feature:
+    :return:
+    '''
+    pca = PCA(n_components=use_pca)
+    # find the PCs
+    pca = pca.fit(train[features_to_standardise])
+    pca_train = pca.transform(train[features_to_standardise])
+    pca_test = pca.transform(test[features_to_standardise])
+    labels = ['PC%s' % i for i in range(1, use_pca + 1)]
+    # add the pc values to the train and test model
+    pc_number = 0
+    for label in labels:
+        train[label] = pd.DataFrame(pca_train[:,pc_number])
+        test[label] = pd.DataFrame(pca_test[:, pc_number])
+        pc_number += 1
+    # Find the variance explained within each PC
+    var_exp = pca.explained_variance_ratio_
+    # return train , test and var explained of the pca
+    return train, test, var_exp
+
+def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, use_pca):
+    '''
+    This re freshes the whole data set as needed by the ipython process
+    this is the function to modify if you want different features in the model.
+    :return: data_normed df with standardised values and model features to use
+    '''
+    data_file = pd.read_csv(file_location)  # pd.read_csv(r"/storage/eurusd_train_normed.csv")
+    data_file = data_file.replace(np.nan, 0)
+    ########################### Set Model Paramaters #############################
+    # this looks back over a set period as the memory for the LSTM
+    model_features = ["spot_v_HF", "spot_v_MF", "spot_v_LF", "HF_ema_diff",
+                      "MF_ema_diff", "LF_ema_diff", "LDN", "NY", "Asia", "target"]
+    ################### Standardise Entire Dataset using rolling lookback windows ###############
+    features_to_standardise = ["spot_v_HF", "spot_v_MF", "spot_v_LF", "HF_ema_diff",
+                               "MF_ema_diff", "LF_ema_diff"]
+    ###### Set Targets ##############
+    data_file["target"] = calculate_target(data_file, trade_horizon, use_risk_adjusted)
+    # Remove infinity from the values, division by 0
+    data_file["target"] = data_file["target"].replace(np.inf, 0)
+    data_file['target'] = data_file["target"].replace(-np.inf, 0)
+    # roughly 3 yrs of data slightly less actually
+    data_normed = standardise_data(data_file, model_features, features_to_standardise, window)
+    # add extra features non standardised
+    data_normed['Date'] = data_file['Date'].iloc[window:]
+    data_normed['CCY'] = data_file['CCY'].iloc[window:]
+    data_normed['logret'] = data_file['logret'].iloc[window:]
+    if use_pca > 0:
+        # if we are using pca features, then model features need only to be PC1 and PC2 etc plus the target
+        model_features = ['PC%s' %i for i in range(1,use_pca+1)]
+        model_features.append("target")
+    return data_normed.reset_index(drop = True), model_features, features_to_standardise
+
 def main():
     pass
 
