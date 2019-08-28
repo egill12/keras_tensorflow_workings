@@ -1,19 +1,3 @@
-'''
-author: Ed Gill
-
-This file contains the neccessary modules for creating the training and testing files for the machine learnign algorithm.
-'''
-
-# import neccessary modules to perpare the data for entry to ML model.
-from keras.models import Sequential
-from keras.layers import LSTM
-from keras.layers import Dense
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-from sklearn.decomposition import PCA
 
 def create_train_test_file(data_file, data_size, test_split, test_buffer,concat_results):
     '''
@@ -49,7 +33,7 @@ def create_train_test_file(data_file, data_size, test_split, test_buffer,concat_
 def standardise_data(dataset, full_cols, standardised_cols,window):
     '''
     This function computes the standardised returns on a rolling basis backwards.
-    This si most realistic in term sof a trading strategy and also means the test data is standardised on the correct basis using the 
+    This si most realistic in term sof a trading strategy and also means the test data is standardised on the correct basis using the
     latest data available at each timestep.
     :param dataframe:
     :param cols:
@@ -103,7 +87,7 @@ def create_dataset(dataset, populate_target, look_back, test):
 def signal(output, thold):
     '''
     :param x: Create a signal from the predicted softmax activation output
-    :return: signal to trade 
+    :return: signal to trade
     '''
     if output >= thold:
         return 1
@@ -116,15 +100,31 @@ def get_accuracy(predicted, test_target ):
     '''
     :return: the prediction accuracy of our model
     '''
-    true_class = [np.sign(i[0]) for i in test_target]
-    return accuracy_score(true_class, predicted)
+    return accuracy_score(test_target, predicted)
 
 def get_scaled_returns():
     '''
     This file will scale exposure based on the next 24 hour ahead prediction
-    :return: 
+    :return:
     '''
     pass
+
+def erf(row_value):
+    ''''
+    This applies the error function to smoooth the risk adjusted return prediction
+    mapps all numbers from -1 to + 1
+    '''
+    return (2*(1/(1 + np.exp(-row_value)))-1)
+
+def get_total_data_needed(test_split, data_size,test_buffer):
+    '''
+    :param test_split:
+    :return: the data size needed for all computations
+    '''
+    if test_split <1 :
+        return int(data_size*(1 + test_split)) + test_buffer
+    else:
+        return int(data_size + test_split + test_buffer)
 
 def get_pca_features(train,test, features_to_standardise, use_pca):
     '''
@@ -151,75 +151,6 @@ def get_pca_features(train,test, features_to_standardise, use_pca):
     # return train , test and var explained of the pca
     return train, test, var_exp
 
-def update_performance(data_size,ntree, acc_score , information_ratio, run_time, train_date, test_date, performance_store):
-    # Store the data as needed
-    performance_store['data_size'].append(data_size)
-    performance_store['ntree'].append(ntree)
-    performance_store['Accuracy_Score'].append(acc_score)
-    performance_store['Info_Ratio'].append(information_ratio)
-    performance_store['run_time'].append(run_time)
-    performance_store['train_date_st'].append(train_date)
-    performance_store['test_date_st'].append(test_date)
-    return pd.DataFrame(performance_store)
-
-
-def set_params_random_forests():
-    '''
-    This is the control center for all the params that need to be set in the RF  modules
-    :return: return all params as they have been set here
-    '''
-    ########################### Set Model Paramaters #############################
-    param_dict = {"ntrees" : [150], "max_features" : 5, "test_buffer" : 5, "max_depth" : 30 , "data_size" : 15000 ,
-                  "concat_results" : False, "test_split" : 0.25, "thold" : 0.55, "window" : 1000, "trade_horizon" : 24,
-                  "use_risk_adjusted" : True , "use_binary" : False, "use_classifier" : False, "use_pca" : 0,
-                  "use_separated_chunk" : False, "use_random_train_data" : True}
-    # this looks back over a set period as the memory for the LSTM
-      # [i for i in range(25,301,25)] # [21, 66]
-    # if running pca, max features can only be same or less than the full total of features
-    return param_dict
-
-
-def set_params_LSTM():
-    '''
-    Additional params only applicable to the RF code
-    return:
-    '''
-    lstm_dict = {'EPOCH' : 350, 'first_layer': 4, 'second_layer': 1, 'look_back' : 66 }
-    return lstm_dict
-
-def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, use_pca,use_random_train_data ):
-    '''
-    This re freshes the whole data set as needed by the ipython process
-    this is the function to modify if you want different features in the model.
-    :return: data_normed df with standardised values and model features to use
-    '''
-    data_file = pd.read_csv(file_location)  # pd.read_csv(r"/storage/eurusd_train_normed.csv")
-    data_file = data_file.replace(np.nan, 0)
-    ########################### Set Model Paramaters #############################
-    # this looks back over a set period as the memory for the LSTM
-    model_features = ["spot_v_HF", "spot_v_MF", "spot_v_LF", "HF_ema_diff",
-                      "MF_ema_diff", "LF_ema_diff", "target"] #  "LDN", "NY", "Asia" removed, # target must be kept at the end
-    ################### Standardise Entire Dataset using rolling lookback windows ###############
-    features_to_standardise = ["spot_v_HF", "spot_v_MF", "spot_v_LF", "HF_ema_diff",
-                               "MF_ema_diff", "LF_ema_diff"]
-    ###### Set Targets ##############
-    data_file["target"] = calculate_target(data_file, trade_horizon, use_risk_adjusted)
-    # Remove infinity from the values, division by 0
-    data_file["target"] = data_file["target"].replace(np.inf, 0)
-    data_file['target'] = data_file["target"].replace(-np.inf, 0)
-    data_file['target'] = data_file["target"].replace(np.nan, 0)
-    # roughly 3 yrs of data slightly less actually
-    data_normed = standardise_data(data_file, model_features, features_to_standardise, window)
-    # add extra features non standardised, check we are using random or non random data
-    if not use_random_train_data:
-        data_normed['Date'] = data_file['Date'].iloc[window:]
-    data_normed['CCY'] = data_file['CCY'].iloc[window:]
-    data_normed['logret'] = data_file['logret'].iloc[window:]
-    if use_pca > 0:
-        # if we are using pca features, then model features need only to be PC1 and PC2 etc plus the target
-        model_features = ['PC%s' %i for i in range(1,use_pca+1)]
-        model_features.append("target")
-    return data_normed.reset_index(drop = True), model_features, features_to_standardise
 
 def main():
     pass
