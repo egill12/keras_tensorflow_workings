@@ -184,7 +184,7 @@ def set_params_LSTM():
     Additional params only applicable to the RF code
     return:
     '''
-    lstm_dict = {'EPOCH' : 350, 'first_layer': 4, 'second_layer': 1, 'look_back' : 66 }
+    lstm_dict = {'EPOCH' : 350, 'first_layer': 32, 'second_layer': 16, 'look_back' : 64 }
     return lstm_dict
 
 def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, use_pca,use_random_train_data ):
@@ -208,6 +208,8 @@ def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, 
     data_file["target"] = data_file["target"].replace(np.inf, 0)
     data_file['target'] = data_file["target"].replace(-np.inf, 0)
     data_file['target'] = data_file["target"].replace(np.nan, 0)
+    # may want to remove below
+    # data_file['target'] = data_file['target'].apply(np.sign)
     # roughly 3 yrs of data slightly less actually
     data_normed = standardise_data(data_file, model_features, features_to_standardise, window)
     # add extra features non standardised, check we are using random or non random data
