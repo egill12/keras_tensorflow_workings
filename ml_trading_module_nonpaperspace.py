@@ -170,8 +170,8 @@ def set_params_random_forests():
     '''
     ########################### Set Model Paramaters #############################
     param_dict = {"ntrees" : [150], "max_features" : 5, "test_buffer" : 5, "max_depth" : 30 , "data_size" : 15000 ,
-                  "concat_results" : False, "test_split" : 0.25, "thold" : 0.51, "window" : 1000, "trade_horizon" : 24,
-                  "use_risk_adjusted" : False , "use_binary" : False, "use_classifier" : False, "use_pca" : 0,
+                  "concat_results" : False, "test_split" : 0.25, "thold" : 0.55, "window" : 1000, "trade_horizon" : 24,
+                  "use_risk_adjusted" : True , "use_binary" : False, "use_classifier" : False, "use_pca" : 0,
                   "use_separated_chunk" : False, "use_random_train_data" : True}
     # this looks back over a set period as the memory for the LSTM
       # [i for i in range(25,301,25)] # [21, 66]
@@ -184,10 +184,10 @@ def set_params_LSTM():
     Additional params only applicable to the RF code
     return:
     '''
-    lstm_dict = {'EPOCH' : 500, 'first_layer': 32, 'second_layer': 16, 'look_back' :90 }
+    lstm_dict = {'EPOCH' : 350, 'first_layer': 32, 'second_layer': 16, 'look_back' : 64 }
     return lstm_dict
 
-def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, use_pca,use_binary, use_random_train_data):
+def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, use_pca,use_random_train_data ):
     '''
     This re freshes the whole data set as needed by the ipython process
     this is the function to modify if you want different features in the model.
@@ -208,9 +208,8 @@ def initialise_process(file_location, trade_horizon, window, use_risk_adjusted, 
     data_file["target"] = data_file["target"].replace(np.inf, 0)
     data_file['target'] = data_file["target"].replace(-np.inf, 0)
     data_file['target'] = data_file["target"].replace(np.nan, 0)
-    # make it binary
-    if use_binary:
-        data_file['target'] = data_file["target"].apply(np.sign)
+    # may want to remove below
+    # data_file['target'] = data_file['target'].apply(np.sign)
     # roughly 3 yrs of data slightly less actually
     data_normed = standardise_data(data_file, model_features, features_to_standardise, window)
     # add extra features non standardised, check we are using random or non random data
